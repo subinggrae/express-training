@@ -14,28 +14,32 @@ db.set(3, { no: 3, name: '이상해꽃', type: ['풀', '독'], height: 2.0, weig
  * 도감을 전체 조회한다.
  */
 app.get('/poketmons', function (req, res) {
-  let poketmons = {};
-  db.forEach((value) => {
-    poketmons[value.no] = value;
-  })
+  let poketmons = [...db.values()];
+  let hasData = db.size;
 
-  res.json(poketmons);
+  if (hasData) {
+    poketmons.sort((a, b) => a.no - b.no);
+    res.json(poketmons);
+  } else {
+    res.json({
+      message: '도감이 비어있습니다.'
+    });
+  }
 })
 
 /**
  * 특정 번호의 포켓몬을 조회한다.
  */
 app.get('/poketmons/:no', function (req, res) {
-  let { no } = req.params;
-  no = parseInt(no);
-  
-  let poketmon = db.get(no);
-  if (!poketmon) {
-    res.json({
-      message: '도감에 등록되지 않은 번호입니다.'
-    })
-  } else {
+  let no = parseInt(req.params.no);
+  let hasData = db.get(no);
+
+  if (hasData) {
     res.json(db.get(no));
+  } else {
+    res.status(404).json({
+      message: `${no}번의 포켓몬을 찾을 수 없습니다.`
+    });
   }
 })
 
@@ -44,20 +48,21 @@ app.get('/poketmons/:no', function (req, res) {
  */
 app.post('/poketmons', function (req, res) {
   let { no, name } = req.body;
+  let hasData = db.get(no);
+  let hasBody = no && name;
+  let status, message;
 
-  let poketmon = db.get(no);
-  let msg;
-  if (!no) {
-    msg = '포켓몬 정보에 도감 번호를 입력해주세요.'
-  } else if (poketmon) {
-    msg = '이미 등록이 완료된 도감번호입니다.'
-  } else {
+  if (hasBody && !hasData) {
     db.set(no, req.body);
-    msg = `도감번호 ${no}번 포켓몬 ${name}(이)가 등록되었습니다.`
+    status = 201;
+    message = `도감번호 ${no}번 포켓몬 ${name}(이)가 등록되었습니다.`
+  } else {
+    status = 400;
+    message = '등록하고 싶은 도감 번호와 포켓몬 정보를 다시 확인해주세요.'
   }
 
-  res.json({
-    message: msg
+  res.status(status).json({
+    'message': message
   });
 })
 
@@ -65,20 +70,21 @@ app.post('/poketmons', function (req, res) {
  * 포켓몬 정보를 수정합니다.
  */
 app.put('/poketmons/:no', function (req, res) {
-  let { no } = req.params;
-  no = parseInt(no);
+  let no = parseInt(req.params.no);
+  let hasData = db.get(no);
+  let status, message;
 
-  let poketmon = db.get(no);
-  let msg;
-  if (!poketmon) {
-    msg = `${no}번은 도감에 등록되지 않은 번호입니다.`
-  } else {
+  if (hasData) {
     db.set(no, req.body);
-    msg = `${no}번 포켓몬 정보가 수정되었습니다.`
+    status = 200;
+    message = `${no}번 포켓몬 정보가 수정되었습니다.`
+  } else {
+    status = 404;
+    messasge = `${no}번의 포켓몬을 찾을 수 없습니다.`
   }
 
-  res.json({
-    message: msg
+  res.status(status).json({
+    'message': message
   });
 })
 
@@ -86,16 +92,20 @@ app.put('/poketmons/:no', function (req, res) {
  * 도감 전체를 삭제합니다.
  */
 app.delete('/poketmons', function (req, res) {
-  let msg;
-  if (!db.size) {
-    msg =  '도감에 등록된 포켓몬이 존재하지 않습니다.'
-  } else {
+  let status, message;
+  let hasData = db.size
+
+  if (hasData) {
     db.clear();
-    msg = '도감이 초기화되었습니다.'
+    status = 200;
+    message = '도감이 초기화되었습니다.'
+  } else {
+    status = 404;
+    message =  '도감이 이미 비어있습니다.'
   }
 
-  res.json({
-    message: msg
+  res.status(status).json({
+    'message': message
   });
 })
 
@@ -103,19 +113,20 @@ app.delete('/poketmons', function (req, res) {
  * 포켓몬을 삭제합니다.
  */
 app.delete('/poketmons/:no', function (req, res) {
-  let { no } = req.params;
-  no = parseInt(no);
+  let no = parseInt(req.params.no);
+  let hasData = db.get(no);
+  let status, message;
 
-  let poketmon = db.get(no);
-  let msg;
-  if (!poketmon) {
-    msg = `${no}번은 도감에 등록되지 않은 번호입니다.`
-  } else {
+  if (hasData) {
     db.delete(no);
-    msg = `${poketmon.name}(이)가 도감에서 삭제되었습니다.`
+    status = 200;
+    message = `${poketmon.name}(이)가 도감에서 삭제되었습니다.`
+  } else {
+    status = 404;
+    message = `${no}번의 포켓몬을 찾을 수 없습니다.`
   }
 
-  res.json({
-    message: msg
+  res.status(status).json({
+    'message': message
   });
 })
