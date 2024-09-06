@@ -47,7 +47,9 @@ app.post('/poketmons', function (req, res) {
 
   let poketmon = db.get(no);
   let msg;
-  if (poketmon) {
+  if (!no) {
+    msg = '포켓몬 정보에 도감 번호를 입력해주세요.'
+  } else if (poketmon) {
     msg = '이미 등록이 완료된 도감번호입니다.'
   } else {
     db.set(no, req.body);
